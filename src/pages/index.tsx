@@ -46,7 +46,8 @@ export default function Home() {
 
         const data: FileInfo = await response.json();
         router.push(`/file/${data.id}`);
-      } catch (error: any) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error: unknown) {
         setError("Error uploading file");
       }
     };
