@@ -53,8 +53,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json(fileRecord.data);
   } catch (error: unknown) {
-    const err = error as SupabaseError;
-    console.error('Upload error:', err);
-    res.status(500).json({ error: err.message || 'Error uploading file' });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    if (error instanceof Error) {
+      // Safe narrowing using instance check
+      const err = error as unknown as SupabaseError;
+      console.error('Upload error:', err);
+      res.status(500).json({ error: err.message || 'Error uploading file' });
+    } else {
+      // Handle case where the error is not an instance of Error
+      console.error('Unexpected error:', error);
+      res.status(500).json({ error: 'Unknown error occurred' });
+    }
   }
 }
