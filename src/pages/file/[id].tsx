@@ -10,10 +10,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 const FilePage = () => {
   const router = useRouter();
   const { id } = router.query;
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<any>(null);
   const [userName, setUserName] = useState('');
   const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
@@ -79,10 +79,12 @@ const FilePage = () => {
 
   const renderAllPages = async () => {
     const container = document.getElementById('pdf-container');
+    if (!container) return;
     container.innerHTML = '';
 
     const scale = 1.5;
     if (!pdfDocument) return;
+
     for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
       const canvas = document.createElement('canvas');
       canvas.id = `page-${pageNum}`;
@@ -98,6 +100,8 @@ const FilePage = () => {
       canvas.style.backgroundColor = 'white';
       
       const context = canvas.getContext('2d');
+      if (!context) continue;
+
       await page.render({
         canvasContext: context,
         viewport: viewport
@@ -105,7 +109,7 @@ const FilePage = () => {
     }
   };
 
-  const handleNameSubmit = (e) => {
+  const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (userName.trim()) {
       setIsNameSubmitted(true);
@@ -113,7 +117,7 @@ const FilePage = () => {
     }
   };
 
-  const handleComment = async (e) => {
+  const handleComment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
@@ -151,12 +155,12 @@ const FilePage = () => {
     try {
       const zip = new JSZip();
 
-      if (pdfData) {
+      if (pdfData && file?.name) {
         zip.file(file.name, pdfData);
       }
 
       const commentsText = comments
-        .map(c => `${c.user_name} (${new Date(c.created_at).toLocaleString()}): ${c.content}`)
+        .map((c: any) => `${c.user_name} (${new Date(c.created_at).toLocaleString()}): ${c.content}`)
         .join('\n\n');
 
       zip.file('comments.txt', commentsText);
@@ -304,7 +308,7 @@ const FilePage = () => {
                 overflowY: 'auto',
                 padding: '15px'
               }}>
-                {comments.map(comment => (
+                {comments.map((comment: any) => (
                   <div 
                     key={comment.id}
                     style={{
