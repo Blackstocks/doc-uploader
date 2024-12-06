@@ -7,7 +7,6 @@ import JSZip from 'jszip';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-// Define interfaces for your data
 interface FileData {
   id: string;
   url: string;
@@ -47,7 +46,7 @@ const FilePage: React.FC = () => {
         .single();
 
       if (error) throw error;
-      const typedFileData = fileData as FileData; // Cast to our FileData interface
+      const typedFileData = fileData as FileData;
       setFile(typedFileData);
 
       const { data } = supabase.storage.from('files').getPublicUrl(typedFileData.url);
@@ -205,187 +204,70 @@ const FilePage: React.FC = () => {
   };
 
   return (
-    <div style={{
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      margin: 0,
-      padding: 0,
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f0f0f0'
-    }}>
-      <div style={{
-        padding: '12px 20px',
-        borderBottom: '1px solid #ddd',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#fff'
-      }}>
-        <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+    <div className="container">
+      <div className="header">
+        <div className="file-name">
           {file?.name || 'Loading...'}
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={handleExport}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              background: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
+        <div className="header-buttons">
+          <button onClick={handleExport} className="header-button">
             📄 Export PDF & Comments
           </button>
-          <button
-            onClick={handleShare}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              background: '#fff',
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={handleShare} className="header-button">
             🔗 {copied ? 'Copied!' : 'Share'}
           </button>
         </div>
       </div>
 
-      <div style={{
-        display: 'flex',
-        height: 'calc(100vh - 57px)'
-      }}>
-        <div style={{
-          width: '80%',
-          borderRight: '1px solid #ddd',
-          backgroundColor: '#f0f0f0',
-          overflowY: 'auto'
-        }}>
+      <div className="main-content">
+        <div className="pdf-section">
           {loading ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%'
-            }}>
+            <div className="loading-container">
               Loading PDF...
             </div>
           ) : (
-            <div
-              id="pdf-container"
-              style={{
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}
-            />
+            <div id="pdf-container" className="pdf-container" />
           )}
         </div>
 
-        <div style={{
-          width: '20%',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#fff'
-        }}>
+        <div className="comments-section">
           {!isNameSubmitted ? (
-            <div style={{ padding: '15px' }}>
+            <div className="name-form-container">
               <form onSubmit={handleNameSubmit}>
                 <input
                   type="text"
                   placeholder="Enter your name"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  style={{
-                    width: 'calc(100% - 16px)',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '3px'
-                  }}
+                  className="name-input"
                 />
-                <button
-                  type="submit"
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    marginTop: '10px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer'
-                  }}
-                >
+                <button type="submit" className="submit-button">
                   Continue
                 </button>
               </form>
             </div>
           ) : (
             <>
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '15px'
-              }}>
+              <div className="comments-list">
                 {comments.map((comment) => (
-                  <div
-                    key={comment.id}
-                    style={{
-                      padding: '10px',
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: '4px',
-                      marginBottom: '10px'
-                    }}
-                  >
-                    <div style={{ fontWeight: 'bold' }}>{comment.user_name}</div>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>
+                  <div className="comment" key={comment.id}>
+                    <div className="comment-user">{comment.user_name}</div>
+                    <div className="comment-date">
                       {new Date(comment.created_at).toLocaleString()}
                     </div>
                     <div>{comment.content}</div>
                   </div>
                 ))}
               </div>
-              <div style={{
-                borderTop: '1px solid #ddd',
-                padding: '15px'
-              }}>
+              <div className="comment-form-container">
                 <form onSubmit={handleComment}>
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Add a comment..."
-                    style={{
-                      width: 'calc(100% - 16px)',
-                      height: '60px',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '3px',
-                      resize: 'none',
-                      marginBottom: '10px'
-                    }}
+                    className="comment-textarea"
                   />
-                  <button
-                    type="submit"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      backgroundColor: '#4CAF50',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '5px'
-                    }}
-                  >
+                  <button type="submit" className="submit-button">
                     ✈️ Send
                   </button>
                 </form>
@@ -394,6 +276,163 @@ const FilePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        .container {
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          background-color: #f0f0f0;
+        }
+
+        .header {
+          padding: 12px 20px;
+          border-bottom: 1px solid #ddd;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background-color: #fff;
+        }
+
+        .file-name {
+          font-size: 24px;
+          font-weight: bold;
+        }
+
+        .header-buttons {
+          display: flex;
+          gap: 10px;
+        }
+
+        .header-button {
+          padding: 6px 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background: #fff;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 14px;
+        }
+
+        .main-content {
+          display: flex;
+          height: calc(100vh - 57px);
+        }
+
+        .pdf-section {
+          width: 80%;
+          border-right: 1px solid #ddd;
+          background-color: #f0f0f0;
+          overflow-y: auto;
+        }
+
+        .loading-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+        }
+
+        .pdf-container {
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .comments-section {
+          width: 20%;
+          display: flex;
+          flex-direction: column;
+          background-color: #fff;
+        }
+
+        .name-form-container {
+          padding: 15px;
+        }
+
+        .name-input {
+          width: calc(100% - 16px);
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 3px;
+          margin-bottom: 10px;
+        }
+
+        .submit-button {
+          width: 100%;
+          padding: 8px;
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .comments-list {
+          flex: 1;
+          overflow-y: auto;
+          padding: 15px;
+        }
+
+        .comment {
+          padding: 10px;
+          background-color: #f5f5f5;
+          border-radius: 4px;
+          margin-bottom: 10px;
+        }
+
+        .comment-user {
+          font-weight: bold;
+        }
+
+        .comment-date {
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 5px;
+        }
+
+        .comment-form-container {
+          border-top: 1px solid #ddd;
+          padding: 15px;
+        }
+
+        .comment-textarea {
+          width: calc(100% - 16px);
+          height: 60px;
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 3px;
+          resize: none;
+          margin-bottom: 10px;
+          font-size: 14px;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+          .main-content {
+            flex-direction: column;
+          }
+
+          .pdf-section {
+            width: 100%;
+            height: 50vh;
+            border-right: none;
+            border-bottom: 1px solid #ddd;
+          }
+
+          .comments-section {
+            width: 100%;
+            height: 50vh;
+          }
+        }
+      `}</style>
     </div>
   );
 };
