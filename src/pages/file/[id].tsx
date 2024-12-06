@@ -17,7 +17,7 @@ const FilePage = () => {
   const [loading, setLoading] = useState(true);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
-  const [pdfData, setPdfData] = useState(null);
+  const [pdfData, setPdfData] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (id) {
