@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -7,33 +7,38 @@ import JSZip from 'jszip';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-const FilePage = () => {
+// Define interfaces for your data
+interface FileData {
+  id: string;
+  url: string;
+  name: string;
+}
+
+interface CommentData {
+  id: string;
+  file_id: string;
+  user_name: string;
+  content: string;
+  created_at: string;
+}
+
+const FilePage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
-  const [file, setFile] = useState<any>(null);
-  const [userName, setUserName] = useState('');
-  const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState<any[]>([]);
-  const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  const [file, setFile] = useState<FileData | null>(null);
+  const [userName, setUserName] = useState<string>('');
+  const [newComment, setNewComment] = useState<string>('');
+  const [comments, setComments] = useState<CommentData[]>([]);
+  const [copied, setCopied] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [isNameSubmitted, setIsNameSubmitted] = useState(false);
+  const [isNameSubmitted, setIsNameSubmitted] = useState<boolean>(false);
   const [pdfData, setPdfData] = useState<Blob | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      loadFile();
-      loadComments();
-    }
-  }, [id]);
+  const loadFile = useCallback(async () => {
+    if (!id || typeof id !== 'string') return;
 
-  useEffect(() => {
-    if (pdfDocument) {
-      renderAllPages();
-    }
-  }, [pdfDocument]);
-
-  const loadFile = async () => {
     try {
       const { data: fileData, error } = await supabase
         .from('files')
@@ -42,11 +47,10 @@ const FilePage = () => {
         .single();
 
       if (error) throw error;
-      setFile(fileData);
+      const typedFileData = fileData as FileData; // Cast to our FileData interface
+      setFile(typedFileData);
 
-      const { data } = supabase.storage
-        .from('files')
-        .getPublicUrl(fileData.url);
+      const { data } = supabase.storage.from('files').getPublicUrl(typedFileData.url);
 
       const response = await fetch(data.publicUrl);
       const blob = await response.blob();
@@ -56,13 +60,15 @@ const FilePage = () => {
       const pdf = await loadingTask.promise;
       setPdfDocument(pdf);
       setLoading(false);
-    } catch (error) {
-      console.error('Error loading file:', error);
+    } catch (err) {
+      console.error('Error loading file:', err);
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
+    if (!id || typeof id !== 'string') return;
+
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -71,20 +77,21 @@ const FilePage = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setComments(data || []);
-    } catch (error) {
-      console.error('Error loading comments:', error);
+      const typedComments = (data ?? []) as CommentData[];
+      setComments(typedComments);
+    } catch (err) {
+      console.error('Error loading comments:', err);
     }
-  };
+  }, [id]);
 
-  const renderAllPages = async () => {
+  const renderAllPages = useCallback(async () => {
+    if (!pdfDocument) return;
+
     const container = document.getElementById('pdf-container');
     if (!container) return;
     container.innerHTML = '';
 
     const scale = 1.5;
-    if (!pdfDocument) return;
-
     for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
       const canvas = document.createElement('canvas');
       canvas.id = `page-${pageNum}`;
@@ -92,22 +99,35 @@ const FilePage = () => {
 
       const page = await pdfDocument.getPage(pageNum);
       const viewport = page.getViewport({ scale });
-      
+
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       canvas.style.marginBottom = '20px';
       canvas.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
       canvas.style.backgroundColor = 'white';
-      
-      const context = canvas.getContext('2d');
-      if (!context) continue;
 
-      await page.render({
-        canvasContext: context,
-        viewport: viewport
-      }).promise;
+      const context = canvas.getContext('2d');
+      if (context) {
+        await page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise;
+      }
     }
-  };
+  }, [pdfDocument]);
+
+  useEffect(() => {
+    if (id) {
+      void loadFile();
+      void loadComments();
+    }
+  }, [id, loadFile, loadComments]);
+
+  useEffect(() => {
+    if (pdfDocument) {
+      void renderAllPages();
+    }
+  }, [pdfDocument, renderAllPages]);
 
   const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -119,18 +139,20 @@ const FilePage = () => {
 
   const handleComment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !id || typeof id !== 'string') return;
 
     try {
       const { data, error } = await supabase
         .from('comments')
-        .insert([{
-          file_id: id,
-          user_name: userName,
-          content: newComment,
-          created_at: new Date().toISOString()
-        }])
-        .select('*, user_name, content, created_at')
+        .insert([
+          {
+            file_id: id,
+            user_name: userName,
+            content: newComment,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select('id, file_id, user_name, content, created_at')
         .single();
 
       if (error) {
@@ -138,10 +160,11 @@ const FilePage = () => {
         return;
       }
 
-      setComments(prevComments => [...prevComments, data]);
+      const newCommentData = data as CommentData;
+      setComments(prevComments => [...prevComments, newCommentData]);
       setNewComment('');
-    } catch (error) {
-      console.error('Error saving comment:', error);
+    } catch (err) {
+      console.error('Error saving comment:', err);
     }
   };
 
@@ -152,15 +175,17 @@ const FilePage = () => {
   };
 
   const handleExport = async () => {
+    if (!file) return;
+
     try {
       const zip = new JSZip();
 
-      if (pdfData && file?.name) {
+      if (pdfData) {
         zip.file(file.name, pdfData);
       }
 
       const commentsText = comments
-        .map((c: any) => `${c.user_name} (${new Date(c.created_at).toLocaleString()}): ${c.content}`)
+        .map(c => `${c.user_name} (${new Date(c.created_at).toLocaleString()}): ${c.content}`)
         .join('\n\n');
 
       zip.file('comments.txt', commentsText);
@@ -169,13 +194,13 @@ const FilePage = () => {
       const url = URL.createObjectURL(zipContent);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${file?.name.replace('.pdf', '')}-with-comments.zip`;
+      a.download = `${file.name.replace('.pdf', '')}-with-comments.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error creating export:', error);
+    } catch (err) {
+      console.error('Error creating export:', err);
     }
   };
 
@@ -201,7 +226,7 @@ const FilePage = () => {
           {file?.name || 'Loading...'}
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
+          <button
             onClick={handleExport}
             style={{
               padding: '6px 12px',
@@ -216,7 +241,7 @@ const FilePage = () => {
           >
             📄 Export PDF & Comments
           </button>
-          <button 
+          <button
             onClick={handleShare}
             style={{
               padding: '6px 12px',
@@ -251,7 +276,7 @@ const FilePage = () => {
               Loading PDF...
             </div>
           ) : (
-            <div 
+            <div
               id="pdf-container"
               style={{
                 padding: '20px',
@@ -308,8 +333,8 @@ const FilePage = () => {
                 overflowY: 'auto',
                 padding: '15px'
               }}>
-                {comments.map((comment: any) => (
-                  <div 
+                {comments.map((comment) => (
+                  <div
                     key={comment.id}
                     style={{
                       padding: '10px',
