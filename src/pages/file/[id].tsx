@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import * as pdfjsLib from 'pdfjs-dist';
+import { PDFDocumentProxy } from 'pdfjs-dist';
 import JSZip from 'jszip';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -15,7 +16,7 @@ const FilePage = () => {
   const [comments, setComments] = useState([]);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [pdfDocument, setPdfDocument] = useState(null);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [isNameSubmitted, setIsNameSubmitted] = useState(false);
   const [pdfData, setPdfData] = useState<Blob | null>(null);
 
@@ -81,6 +82,7 @@ const FilePage = () => {
     container.innerHTML = '';
 
     const scale = 1.5;
+    if (!pdfDocument) return;
     for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
       const canvas = document.createElement('canvas');
       canvas.id = `page-${pageNum}`;
