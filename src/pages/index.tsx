@@ -99,6 +99,7 @@ export default function Home() {
         setTimeout(() => {
           router.push(`/file/${data.id}`);
         }, 800);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error: unknown) {
         setError("Error uploading file. Please try again.");
         setIsUploading(false);
